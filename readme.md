@@ -12,6 +12,7 @@ A backend service that takes a long URL and returns a short, unique code that re
 - Analytics (click tracking)
 - Custom aliases
 - Expiration dates
+- Auth 
 
 ## Tech Stack
 - **Language/Framework:** Python (FastAPI)
