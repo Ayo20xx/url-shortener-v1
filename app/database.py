@@ -11,18 +11,18 @@ engine= create_async_engine(
 
 async def create_db_tables():
     async with engine.begin() as connection:
-        from app.model  # noqa: F401
+        from app.model import Url # noqa: F401
         await connection.run_sync(SQLModel.metadata.create_all)
 
 
 
-async def get_session ():
-    asyncsession= async_sessionmaker(
+asyncsession= async_sessionmaker(
         bind= engine,
         class_= AsyncSession,
         expire_on_commit= False
     )
 
 
-
-
+async def get_session ():
+    async with asyncsession as session:
+        yield session
