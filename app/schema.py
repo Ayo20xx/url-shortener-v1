@@ -1,14 +1,16 @@
-from datetime import timedelta
+from datetime import datetime
 
-from pydantic import AnyHttpUrl, BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel
 
 
-class urlcreate (BaseModel):
-    id : int 
-    short_code : str
-    url : AnyHttpUrl
-    created_at : timedelta= Field(default=timedelta())
+class UrlCreate (BaseModel):
+    shortcode: str
+    url: AnyHttpUrl
 
-class url_read(urlcreate):
-    url : AnyHttpUrl
+class UrlRead(UrlCreate):
+    id: int 
+
+    created_at: datetime
+
+    expires_at: datetime |None  
 
