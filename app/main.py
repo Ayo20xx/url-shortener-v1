@@ -4,4 +4,4 @@ app= FastAPI()
 
 @app.post("/shorten")
 def create_url(url):
-    UrlCreate.model_dump()
+    UrlCreate.model_dump( )
