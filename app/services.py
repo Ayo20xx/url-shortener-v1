@@ -1,5 +1,6 @@
 from secrets import token_urlsafe
 
+from fastapi import HTTPException, status
 from sqlmodel import select
 
 from app.database import SessionDep
@@ -19,3 +20,11 @@ async def create_url_service(input:UrlCreate,session:SessionDep):
      await session.commit()
      await session.refresh(new_url)
      return new_url
+
+
+async def get_url_service(input:str,session:SessionDep):
+    statement=select(Url).where(Url.shortcode == input)
+    url=await session.exec(statement).first()
+    if not url :
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
+    return url

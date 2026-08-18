@@ -27,7 +27,7 @@ asyncsession= async_sessionmaker(
 
 
 async def get_session ():
-    async with asyncsession as session:
+    async with asyncsession() as session:
         yield session
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
