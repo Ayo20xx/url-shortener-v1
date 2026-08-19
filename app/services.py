@@ -12,7 +12,7 @@ def shortcode_generator():
     return token_urlsafe(6)
 async def create_url_service(input:UrlCreate,session:SessionDep):
      new_url= Url(
-          url = input.url,
+          url = str(input.url),
           shortcode= shortcode_generator()
      )
 
