@@ -28,3 +28,11 @@ async def get_url_service(input:str,session:SessionDep):
     if not url :
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
     return url
+
+
+
+async def generate_token():
+    def functionize():
+        yield 
+
+    return functionize()
