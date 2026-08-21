@@ -31,8 +31,3 @@ async def get_url_service(input:str,session:SessionDep):
 
 
 
-async def generate_token():
-    def functionize():
-        yield 
-
-    return functionize()
