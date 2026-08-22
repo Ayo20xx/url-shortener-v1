@@ -1,6 +1,7 @@
 from secrets import token_urlsafe
 
 from fastapi import HTTPException, status
+from fastapi.responses import RedirectResponse
 from sqlmodel import select
 
 from app.database import SessionDep
@@ -28,13 +29,19 @@ async def get_url_service(input:str,session:SessionDep):
     url= result.scalars().first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
-    return url
+
+    return RedirectResponse(
+        url = url,
+        status_code= status.HTTP_302_FOUND
+    )
+
 
 
 async def get_list_url(session: SessionDep):
     statement= select(Url)
     result= await session.execute(statement)
     return result.scalars().first()
+
 
 
 

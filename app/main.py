@@ -19,7 +19,7 @@ async def create_url(url_code:UrlCreate,session:SessionDep):
     return await create_url_service(url_code,session)
 
 
-@app.get("/url/{shortcode}")
+@app.get("/url/{shortcode}", )
 async def redirect_url(shortcode:str,session:SessionDep):
     return await get_url_service(shortcode,session)
 
