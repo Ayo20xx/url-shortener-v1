@@ -29,12 +29,18 @@ async def get_url_service(input:str,session:SessionDep):
     url= result.scalars().first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
+<<<<<<< HEAD
 
+=======
+>>>>>>> ea56f3a (resolved merge conflict)
     return RedirectResponse(
         url = url,
         status_code= status.HTTP_302_FOUND
     )
+<<<<<<< HEAD
 
+=======
+>>>>>>> ea56f3a (resolved merge conflict)
 
 
 async def get_list_url(session: SessionDep):
@@ -44,4 +50,7 @@ async def get_list_url(session: SessionDep):
 
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ea56f3a (resolved merge conflict)
