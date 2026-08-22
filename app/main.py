@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.database import SessionDep, create_db_tables
 from app.schema import UrlCreate, UrlRead
-from app.services import create_url_service, get_url_service
+from app.services import create_url_service, get_list_url, get_url_service
 
 
 @asynccontextmanager
@@ -22,3 +22,8 @@ async def create_url(url_code:UrlCreate,session:SessionDep):
 @app.get("/url/{shortcode}")
 async def redirect_url(shortcode:str,session:SessionDep):
     return await get_url_service(shortcode,session)
+
+@app.get("/urls")
+async def list_url(session:SessionDep):
+    return await get_list_url(session)
+

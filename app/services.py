@@ -24,10 +24,17 @@ async def create_url_service(input:UrlCreate,session:SessionDep):
 
 async def get_url_service(input:str,session:SessionDep):
     statement=select(Url).where(Url.shortcode == input)
-    url=await session.exec(statement).first()
-    if not url :
+    result=await session.execute(statement)
+    url= result.scalars().first()
+    if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
     return url
+
+
+async def get_list_url(session: SessionDep):
+    statement= select(Url)
+    result= await session.execute(statement)
+    return result.scalars().first()
 
 
 
