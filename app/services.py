@@ -41,4 +41,16 @@ async def get_list_url(session: SessionDep):
     return result.scalars().all()
 
 
+async def delete_Url(id:int, session:SessionDep):
+    statement = select(Url). where(Url.id == id )
+    result = await session .execute (statement)
+    query = result.scalars().first()
+    if not query:
+        raise HTTPException(
+            status_code= status.HTTP_404_NOT_FOUND,
+            detail= f"data with id {id } can not be found"
+        )
+    session.delete(query)
+    await session.commit()
+    return {"detail": f"Successfully deleted item {id}"}
 
