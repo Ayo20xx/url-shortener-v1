@@ -28,5 +28,5 @@ async def redirect_url(shortcode:str,session:SessionDep):
     return await get_url_service(shortcode,session)
 
 @app.delete("/urls/{id}")
-async def delete_url(id:int,session:SessionDep):
+async def delete_urls(id:int,session:SessionDep):
     return await delete_url(id,session)
