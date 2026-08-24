@@ -41,7 +41,7 @@ async def get_list_url(session: SessionDep):
     return result.scalars().all()
 
 
-async def delete_Url(id:int, session:SessionDep):
+async def delete_url(id:int, session:SessionDep):
     statement = select(Url). where(Url.id == id )
     result = await session .execute (statement)
     query = result.scalars().first()
