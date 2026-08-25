@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from app.database import SessionDep
 from app.model import Url
-from app.schema import UrlCreate,UrlUpdate
+from app.schema import UrlCreate, UrlUpdate
 
 
 def shortcode_generator():
@@ -69,5 +69,5 @@ async def update_url_service(id:int ,session: AsyncSession,input:UrlUpdate):
     session.add(url)
     await session.commit()
     await session.refresh(url)
-    return UrlUpdate
+    return url
 

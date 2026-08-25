@@ -4,7 +4,13 @@ from fastapi import FastAPI
 
 from app.database import SessionDep, create_db_tables
 from app.schema import UrlCreate, UrlRead
-from app.services import create_url_service, delete_url, get_list_url, get_url_service
+from app.services import (
+    create_url_service,
+    delete_url,
+    get_list_url,
+    get_url_service,
+    update_url_service,
+)
 
 
 @asynccontextmanager
@@ -26,6 +32,11 @@ async def list_url(session:SessionDep):
 @app.get("/urls/{shortcode}")
 async def redirect_url(shortcode:str,session:SessionDep):
     return await get_url_service(shortcode,session)
+
+
+@app.patch("/urls")
+async def update(id:int, session: SessionDep):
+    return await update_url_service(id,session)
 
 @app.delete("/urls/{id}")
 async def delete_urls(id:int,session:SessionDep):
