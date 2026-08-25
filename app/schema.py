@@ -7,6 +7,11 @@ class UrlCreate (BaseModel):
     
     url: AnyHttpUrl
 
+class UrlUpdate(UrlCreate):
+    pass
+
+    
+
 class UrlRead(UrlCreate):
     id: int 
 

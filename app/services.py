@@ -2,11 +2,12 @@ from secrets import token_urlsafe
 
 from fastapi import HTTPException, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.database import SessionDep
 from app.model import Url
-from app.schema import UrlCreate
+from app.schema import UrlCreate,UrlUpdate
 
 
 def shortcode_generator():
@@ -36,7 +37,7 @@ async def get_url_service(input:str,session:SessionDep):
     )
 
 
-async def get_list_url(session: SessionDep):
+async def get_list_url(session: SessionDep,):
     statement= select(Url)
     result= await session.execute(statement)
     return result.scalars().all()
@@ -54,4 +55,19 @@ async def delete_url(id:int, session:SessionDep):
     session.delete(query)
     await session.commit()
     return {"detail": f"Successfully deleted item {id}"}
+
+
+async def update_url_service(id:int ,session: AsyncSession,input:UrlUpdate):
+
+    statement=select(Url).where(Url.id == id)
+    result=await session.execute(statement)
+    url= result.scalars().first()
+    if not url:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
+    url.url=input.url
+
+    session.add(url)
+    await session.commit()
+    await session.refresh(url)
+    return UrlUpdate
 
