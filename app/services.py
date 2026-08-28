@@ -5,7 +5,6 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.database import SessionDep
 from app.model import Url
 from app.schema import UrlCreate, UrlUpdate
 
@@ -13,7 +12,7 @@ from app.schema import UrlCreate, UrlUpdate
 def shortcode_generator():
     return token_urlsafe(6)
 
-async def create_url_service(input:UrlCreate,session:SessionDep):
+async def create_url_service(input:UrlCreate,session:AsyncSession):
      new_url= Url(
           url = str(input.url),
           shortcode= shortcode_generator()
@@ -25,7 +24,7 @@ async def create_url_service(input:UrlCreate,session:SessionDep):
      return new_url
 
 
-async def get_url_service(input:str,session:SessionDep):
+async def get_url_service(input:str,session:AsyncSession):
     statement=select(Url).where(Url.shortcode == input)
     result=await session.execute(statement)
     url= result.scalars().first()
@@ -37,13 +36,13 @@ async def get_url_service(input:str,session:SessionDep):
     )
 
 
-async def get_list_url(session: SessionDep,):
+async def get_list_url(session: AsyncSession):
     statement= select(Url)
     result= await session.execute(statement)
     return result.scalars().all()
 
 
-async def delete_url(id:int, session:SessionDep):
+async def delete_url(id:int, session:AsyncSession):
     statement = select(Url). where(Url.id == id )
     result = await session .execute (statement)
     query = result.scalars().first()
@@ -70,4 +69,7 @@ async def update_url_service(id:int ,session: AsyncSession,input:UrlUpdate):
     await session.commit()
     await session.refresh(url)
     return url
+
+
+
 
