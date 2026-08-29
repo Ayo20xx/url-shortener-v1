@@ -36,10 +36,10 @@ async def get_url_service(input:str,session:AsyncSession):
     )
 
 
-async def get_list_url(session: AsyncSession):
-    statement= select(Url)
-    result= await session.execute(statement)
-    return result.scalars().all()
+async def get_list_url(session: AsyncSession,skip: int = 0,limit: int = 10):
+    statement= select(Url).offset(skip).limit(limit=limit)
+    result= await session.scalars(statement)
+    return result.all()
 
 
 async def delete_url(id:int, session:AsyncSession):
