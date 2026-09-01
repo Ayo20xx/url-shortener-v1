@@ -26,8 +26,8 @@ async def create_url_service(input:UrlCreate,session:AsyncSession):
 
 async def get_url_service(input:str,session:AsyncSession):
     statement=select(Url).where(Url.shortcode == input)
-    result=await session.execute(statement)
-    url= result.scalars().first()
+    result=await session.scalars(statement)
+    url= result.first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
     return RedirectResponse(
@@ -44,8 +44,8 @@ async def get_list_url(session: AsyncSession,skip: int = 0,limit: int = 10):
 
 async def delete_url(id:int, session:AsyncSession):
     statement = select(Url). where(Url.id == id )
-    result = await session .execute (statement)
-    query = result.scalars().first()
+    result = await session .scalars(statement)
+    query = result.first()
     if not query:
         raise HTTPException(
             status_code= status.HTTP_404_NOT_FOUND,
