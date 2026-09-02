@@ -15,7 +15,7 @@ def shortcode_generator():
 async def create_url_service(input:UrlCreate,session:AsyncSession):
      new_url= Url(
           url = str(input.url),
-          shortcode= shortcode_generator()
+          shortcode= input.custom_shortcodes if input.custom_shortcodes else shortcode_generator()
      )
 
      session.add(new_url)
