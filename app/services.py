@@ -63,7 +63,10 @@ async def update_url_service(id:int ,session: AsyncSession,input:UrlUpdate):
     url= result.scalars().first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
-    url.url=input.url
+
+    update_data = input.model_dump(exclude_unset=True)
+    for field,value in update_data.items():
+        setattr(url,field,value)
 
     session.add(url)
     await session.commit()

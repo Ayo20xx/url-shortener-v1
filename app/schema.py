@@ -4,7 +4,7 @@ from pydantic import AnyHttpUrl, BaseModel
 
 
 class UrlCreate (BaseModel):
-    
+    custom_shortcodes
     url: AnyHttpUrl
 
 class UrlUpdate(UrlCreate):
