@@ -3,7 +3,7 @@ from secrets import token_urlsafe
 from fastapi import HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import exists, select
 
 from app.model import Url
 from app.schema import UrlCreate, UrlUpdate
@@ -12,10 +12,26 @@ from app.schema import UrlCreate, UrlUpdate
 def shortcode_generator():
     return token_urlsafe(6)
 
+async def is_exists(session:AsyncSession,shortcode:str) -> bool:
+    statement=select(exists().where(Url.shortcode == shortcode))
+    is_exists= await session.scalars(statement)
+    return is_exists
+
+
+
+
 async def create_url_service(input:UrlCreate,session:AsyncSession):
+    if input.custom_shortcodes:
+     if is_exists(session,input.custom_shortcodes):
+         raise ValueError ("Custom shortcode is already taken.")
+     shortcode = input.custom_shortcodes
+    else:
+     shortcode=shortcode_generator()
+
+     
      new_url= Url(
           url = str(input.url),
-          shortcode= input.custom_shortcodes if input.custom_shortcodes else shortcode_generator()
+          shortcode= shortcode
      )
 
      session.add(new_url)
