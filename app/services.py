@@ -14,7 +14,7 @@ def shortcode_generator():
 
 async def is_exists(session:AsyncSession,shortcode:str) -> bool:
     statement=select(exists().where(Url.shortcode == shortcode))
-    is_exists= await session.scalars(statement)
+    is_exists= await session.scalar(statement)
     return is_exists
 
 
@@ -22,22 +22,31 @@ async def is_exists(session:AsyncSession,shortcode:str) -> bool:
 
 async def create_url_service(input:UrlCreate,session:AsyncSession):
     if input.custom_shortcodes:
-     if is_exists(session,input.custom_shortcodes):
-         raise ValueError ("Custom shortcode is already taken.")
+     if await is_exists(session,input.custom_shortcodes):
+         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.") 
      shortcode = input.custom_shortcodes
     else:
-     shortcode=shortcode_generator()
+        shortcode = shortcode_generator()
+        max_attempts = 5
+        attempts = 0
+        while await is_exists(session, shortcode):
+            attempts += 1
+            if attempts >= max_attempts:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Could not generate a unique shortcode."
+                )
+            shortcode = shortcode_generator()
 
-     
-     new_url= Url(
+    new_url= Url(
           url = str(input.url),
           shortcode= shortcode
      )
 
-     session.add(new_url)
-     await session.commit()
-     await session.refresh(new_url)
-     return new_url
+    session.add(new_url)
+    await session.commit()
+    await session.refresh(new_url)
+    return new_url
 
 
 async def get_url_service(input:str,session:AsyncSession):
