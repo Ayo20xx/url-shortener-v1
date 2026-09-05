@@ -41,3 +41,8 @@ async def update(id:int, session: SessionDep):
 @app.delete("/urls/{id}")
 async def delete_urls(id:int,session:SessionDep):
     return await delete_url(id,session)
+
+@app.get("/anayltics")
+async def anaylse(id:int,session:SessionDep):
+    pass
+    
