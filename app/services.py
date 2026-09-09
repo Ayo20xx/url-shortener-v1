@@ -49,13 +49,17 @@ async def create_url_service(input:UrlCreate,session:AsyncSession):
     return new_url
 
 
-async def get_url_service(input:str,session:AsyncSession,click:Clicks):
+async def get_url_service(input: str, session: AsyncSession):
     statement=select(Url).where(Url.shortcode == input)
     result=await session.scalars(statement)
     url= result.first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
-    new_click=click.url_id = 
+
+    new_click = Clicks(url_id=url.id)
+    session.add(new_click)
+    await session.commit()
+
     return RedirectResponse(
         url = url.url,
         status_code= status.HTTP_302_FOUND
