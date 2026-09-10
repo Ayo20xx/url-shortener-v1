@@ -1,3 +1,4 @@
+from datetime import datetime
 from secrets import token_urlsafe
 
 from fastapi import HTTPException, status
@@ -5,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import exists, select
 
-from app.model import Url,Clicks
+from app.model import Clicks, Url
 from app.schema import UrlCreate, UrlUpdate
 
 
@@ -40,7 +41,8 @@ async def create_url_service(input:UrlCreate,session:AsyncSession):
 
     new_url= Url(
           url = str(input.url),
-          shortcode= shortcode
+          shortcode= shortcode,
+          expires_at= input.expire
      )
 
     session.add(new_url)
@@ -55,6 +57,8 @@ async def get_url_service(input: str, session: AsyncSession):
     url= result.first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
+    if url.expires_at < datetime.now:
+        return HTTPException(status_code=status.HTTP_410_GONE,detail="expired url code" )
 
     new_click = Clicks(url_id=url.id)
     session.add(new_click)
@@ -72,23 +76,23 @@ async def get_list_url(session: AsyncSession,skip: int = 0,limit: int = 10):
     return result.all()
 
 
-async def delete_url(id:int, session:AsyncSession):
-    statement = select(Url). where(Url.id == id )
+async def delete_url(shortcode: str, session:AsyncSession):
+    statement = select(Url). where(Url.shortcode == shortcode )
     result = await session .scalars(statement)
     query = result.first()
     if not query:
         raise HTTPException(
             status_code= status.HTTP_404_NOT_FOUND,
-            detail= f"data with id {id } can not be found"
+            detail= f"data with id {shortcode } can not be found"
         )
     session.delete(query)
     await session.commit()
-    return {"detail": f"Successfully deleted item {id}"}
+    return {"detail": f"Successfully deleted item {shortcode}"}
 
 
-async def update_url_service(id:int ,session: AsyncSession,input:UrlUpdate):
+async def update_url_service(shortcode: str ,session: AsyncSession,input:UrlUpdate):
 
-    statement=select(Url).where(Url.id == id)
+    statement=select(Url).where(Url.shortcode == shortcode)
     result=await session.execute(statement)
     url= result.scalars().first()
     if not url:

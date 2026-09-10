@@ -6,6 +6,7 @@ from pydantic import AnyHttpUrl, BaseModel
 class UrlCreate (BaseModel):
     custom_shortcodes : str | None = None
     url: AnyHttpUrl
+    expires_at : datetime | None 
 
 class UrlUpdate(UrlCreate):
     pass

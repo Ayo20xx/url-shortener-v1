@@ -34,15 +34,15 @@ async def redirect_url(shortcode:str,session:SessionDep):
     return await get_url_service(shortcode,session)
 
 
-@app.patch("/urls")
-async def update(id:int, session: SessionDep):
-    return await update_url_service(id,session)
+@app.patch("/urls/{shortcode}")
+async def update(shortcode: str, session: SessionDep):
+    return await update_url_service(shortcode,session)
 
 @app.delete("/urls/{id}")
-async def delete_urls(id:int,session:SessionDep):
-    return await delete_url(id,session)
+async def delete_urls(shortcode:str,session:SessionDep):
+    return await delete_url(shortcode,session)
 
 @app.get("/anayltics")
-async def anaylse(id:int,session:SessionDep):
+async def anaylze(shortcode: int,session:SessionDep):
     pass
     
