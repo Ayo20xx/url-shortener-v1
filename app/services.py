@@ -4,7 +4,7 @@ from secrets import token_urlsafe
 from fastapi import HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import exists, select
+from sqlmodel import exists, func, select
 
 from app.model import Clicks, Url
 from app.schema import UrlCreate, UrlUpdate
@@ -25,7 +25,10 @@ async def create_url_service(input:UrlCreate,session:AsyncSession):
     if input.custom_shortcodes:
      if await is_exists(session,input.custom_shortcodes):
          raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.") 
+     if input.custom_shortcodes in ["docs", "health", "urls"]:
+         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.")
      shortcode = input.custom_shortcodes
+
     else:
         shortcode = shortcode_generator()
         max_attempts = 5
@@ -42,7 +45,7 @@ async def create_url_service(input:UrlCreate,session:AsyncSession):
     new_url= Url(
           url = str(input.url),
           shortcode= shortcode,
-          expires_at= input.expire
+          expires_at= input.expires_at
      )
 
     session.add(new_url)
@@ -57,8 +60,8 @@ async def get_url_service(input: str, session: AsyncSession):
     url= result.first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
-    if url.expires_at < datetime.now:
-        return HTTPException(status_code=status.HTTP_410_GONE,detail="expired url code" )
+    if url.expires_at < datetime.now(tz=datetime.UTC):
+        raise HTTPException(status_code=status.HTTP_410_GONE,detail="expired url code" )
 
     new_click = Clicks(url_id=url.id)
     session.add(new_click)
@@ -93,12 +96,14 @@ async def delete_url(shortcode: str, session:AsyncSession):
 async def update_url_service(shortcode: str ,session: AsyncSession,input:UrlUpdate):
 
     statement=select(Url).where(Url.shortcode == shortcode)
-    result=await session.execute(statement)
-    url= result.scalars().first()
+    result=await session.scalars(statement)
+    url= result.first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
 
     update_data = input.model_dump(exclude_unset=True)
+    if await is_exists(session,input.custom_shortcodes):
+             raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.") 
     for field,value in update_data.items():
         setattr(url,field,value)
 
@@ -107,6 +112,14 @@ async def update_url_service(shortcode: str ,session: AsyncSession,input:UrlUpda
     await session.refresh(url)
     return url
 
+async def analytics(shortcode:str,session:AsyncSession):
+    statement=select(Url).where(Url.shortcode == shortcode)
+    result=await session.scalars(statement)
+    url= result.first()
+    if not url:
+        raise HTTPException(status.HTTP_404_NOT_FOUND,detail="url not found ")
 
-
-
+    count_statement =  select(func.count(Clicks.id)).where(Clicks.url_id==url.id)
+    total_clicks = await session.scalar(count_statement)
+    return {"shortcode":shortcode,
+            "clicks" : total_clicks}

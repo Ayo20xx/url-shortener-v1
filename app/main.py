@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.database import SessionDep, create_db_tables
 from app.schema import UrlCreate, UrlRead
 from app.services import (
+    analytics,
     create_url_service,
     delete_url,
     get_list_url,
@@ -42,7 +43,7 @@ async def update(shortcode: str, session: SessionDep):
 async def delete_urls(shortcode:str,session:SessionDep):
     return await delete_url(shortcode,session)
 
-@app.get("/anayltics")
+@app.get("/analytics")
 async def anaylze(shortcode: int,session:SessionDep):
-    pass
+    return await analytics(shortcode,session)
     
