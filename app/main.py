@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI,Query
 
 from app.database import SessionDep, create_db_tables
 from app.schema import UrlCreate, UrlRead
