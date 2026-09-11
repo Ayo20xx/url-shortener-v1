@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 
 from app.database import SessionDep, create_db_tables
 from app.schema import UrlCreate, UrlRead
@@ -27,7 +27,7 @@ async def create_url(url_code:UrlCreate,session:SessionDep):
 
 
 @app.get("/urls",response_model=list[UrlRead])
-async def list_url(session:SessionDep,skip: int = 0,limit: int = 10):
+async def list_url(session:SessionDep,skip: int = Query(0,ge=0,description="Number of rows to skip"),limit: int = Query(10,ge=10,description="Max rows to return")):
     return await get_list_url(session,skip,limit)
 
 @app.get("/urls/{shortcode}")
