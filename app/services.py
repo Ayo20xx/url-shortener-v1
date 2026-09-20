@@ -22,12 +22,12 @@ async def is_exists(session:AsyncSession,shortcode:str) -> bool:
 
 
 async def create_url_service(input:UrlCreate,session:AsyncSession):
-    if input.custom_shortcodes:
-     if await is_exists(session,input.custom_shortcodes):
+    if input.custom_shortcode:
+     if await is_exists(session,input.custom_shortcode):
          raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.") 
      if input.custom_shortcodes in ["docs", "health", "urls"]:
          raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.")
-     shortcode = input.custom_shortcodes
+     shortcode = input.custom_shortcode
 
     else:
         shortcode = shortcode_generator()
