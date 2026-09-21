@@ -44,6 +44,6 @@ async def delete_urls(shortcode:str,session:SessionDep):
     return await delete_url(shortcode,session)
 
 @app.get("/analytics")
-async def anaylze(shortcode: int,session:SessionDep):
+async def anaylze(shortcode: str ,session:SessionDep):
     return await analytics(shortcode,session)
     

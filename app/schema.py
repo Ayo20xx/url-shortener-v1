@@ -15,7 +15,6 @@ class UrlUpdate(UrlCreate):
 
 class UrlRead(UrlCreate):
     id: int 
-
     created_at: datetime
     shortcode: str
    
