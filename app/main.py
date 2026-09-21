@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Query
 
 from app.database import SessionDep, create_db_tables
-from app.schema import UrlCreate, UrlRead
+from app.schema import UrlCreate, UrlRead,UrlUpdate
 from app.services import (
     analytics,
     create_url_service,
@@ -36,7 +36,7 @@ async def redirect_url(shortcode:str,session:SessionDep):
 
 
 @app.patch("/urls/{shortcode}")
-async def update(shortcode: str, session: SessionDep):
+async def update(shortcode: str, session: SessionDep,input: UrlUpdate):
     return await update_url_service(shortcode,session)
 
 @app.delete("/urls/{id}")

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime,timezone ,timedelta
 from secrets import token_urlsafe
 
 from fastapi import HTTPException, status
@@ -19,7 +19,10 @@ async def is_exists(session:AsyncSession,shortcode:str) -> bool:
     return is_exists
 
 
-
+def to_naive_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 async def create_url_service(input:UrlCreate,session:AsyncSession):
     if input.custom_shortcode:
@@ -42,11 +45,17 @@ async def create_url_service(input:UrlCreate,session:AsyncSession):
                 )
             shortcode = shortcode_generator()
 
-    new_url= Url(
-          url = str(input.url),
-          shortcode= shortcode,
-          expires_at= input.expires_at
-     )
+    expires_at = (
+        to_naive_utc(input.expires_at)
+        if input.expires_at is not None
+        else (datetime.now(timezone.utc) + timedelta(days=30)).replace(tzinfo=None)
+    )
+
+    new_url = Url(
+        url=str(input.url),
+        shortcode=shortcode,
+        expires_at=expires_at,
+    )
 
     session.add(new_url)
     await session.commit()
@@ -60,7 +69,7 @@ async def get_url_service(input: str, session: AsyncSession):
     url= result.first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
-    if url.expires_at < datetime.now(tz=datetime.UTC):
+    if url.expires_at <  to_naive_utc(datetime.now(timezone.utc)):
         raise HTTPException(status_code=status.HTTP_410_GONE,detail="expired url code" )
 
     new_click = Clicks(url_id=url.id)
