@@ -1,64 +1,162 @@
 # URL Shortener
 
-A backend service that takes a long URL and returns a short, unique code that redirects to the original URL.
+This project is a small FastAPI service for creating short codes that redirect to longer URLs. The current implementation stores URL records in PostgreSQL and tracks redirect counts in a `clicks` table.
 
-## Features (MVP)
-- `POST /shorten` — accepts a long URL, returns a short code
-- `GET /{code}` — redirects to the original URL
-- Collision handling for generated short codes
-- Persistent storage (database, not in-memory)
-- Rate limiting (stop abuse)
-- Logging
-- Analytics (click tracking)
-- Custom aliases
-- Expiration dates
-- Auth 
+## Current status
 
-## Tech Stack
-- **Language/Framework:** Python (FastAPI)
-- **Database:** PostgreSQL, Redis
+This repo is a working MVP for:
 
-## How to Run Locally
+- Creating URL records with generated or custom short codes
+- Listing saved URLs
+- Redirecting a shortcode to its destination URL
+- Updating and deleting URL entries
+- Counting total clicks for a shortcode
 
-1. Clone the repo
+The app does not currently implement authentication, Redis-backed rate limiting, or production hardening. See [production.md](./production.md) for the current checklist and remaining work.
+
+## Tech stack
+
+- Python
+- FastAPI
+- SQLModel + SQLAlchemy
+- PostgreSQL
+- Alembic
+- Python dotenv
+
+## Local setup
+
+1. Clone the repository and enter the project directory.
+
    ```bash
    git clone <repo-url>
    cd url-shortener
    ```
 
-2. Create a virtual environment and install dependencies
+2. Create and activate a virtual environment.
+
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # on Windows: venv\Scripts\activate
-   pip install -r requirements.txt
+   python -m venv .venv
+   source .venv/bin/activate
    ```
 
-3. Set up environment variables (see `.env.example`)
+3. Install the app dependencies.
 
-4. Run the server
+   This repository does not currently include a root `requirements.txt`, so install the packages used by the app directly:
+
+   ```bash
+   pip install fastapi uvicorn sqlmodel sqlalchemy asyncpg alembic python-dotenv
+   ```
+
+4. Create a local PostgreSQL database.
+
+   Example:
+
+   ```bash
+   createdb url_shortener
+   ```
+
+5. Copy the example environment file and set the database URL.
+
+   ```bash
+   cp .env.example .env
+   ```
+
+6. Run the database migrations.
+
+   ```bash
+   alembic upgrade head
+   ```
+
+7. Start the API.
+
    ```bash
    uvicorn app.main:app --reload
    ```
 
-   The API will be available at `http://localhost:8000`, with interactive docs at `http://localhost:8000/docs`.
+The app will be available at `http://localhost:8000`, and the interactive docs are at `http://localhost:8000/docs`.
 
-## API Example
+## Environment variables
 
-**Shorten a URL**
-```
-POST /shorten
-Body: { "url": "https://example.com/very/long/path" }
-Response: { "short_code": "abc123" }
-```
+The app reads `DATABASE_URL` from a `.env` file through `config.py`.
 
-**Redirect**
-```
-GET /abc123
-→ redirects to https://example.com/very/long/path
+Example value:
+
+```dotenv
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/url_shortener
 ```
 
-## Design Decisions
-See [TRADEOFFS.md](./TRADEOFFS.md) for reasoning behind key technical choices.
+The repository includes a safe template at [.env.example](./.env.example).
+
+## API overview
+
+The routes in the current app are:
+
+### Create a URL
+
+`POST /urls`
+
+Request body:
+
+```json
+{
+  "url": "https://example.com/very/long/path",
+  "custom_shortcode": "example",
+  "expires_at": "2026-10-01T12:00:00"
+}
+```
+
+`custom_shortcode` and `expires_at` are optional.
+
+Response:
+
+```json
+{
+  "id": 1,
+  "url": "https://example.com/very/long/path",
+  "custom_shortcode": "example",
+  "shortcode": "example",
+  "expires_at": "2026-10-01T12:00:00",
+  "created_at": "2026-09-21T12:00:00"
+}
+```
+
+### List URLs
+
+`GET /urls?skip=0&limit=10`
+
+### Redirect to a URL
+
+`GET /urls/{shortcode}`
+
+This endpoint responds with an HTTP redirect to the original URL.
+
+### Update a URL
+
+`PATCH /urls/{shortcode}`
+
+Request body follows the same fields as the create schema, with the same validation rules.
+
+### Delete a URL
+
+`DELETE /urls/{id}`
+
+### Basic analytics
+
+`GET /analytics?shortcode={shortcode}`
+
+This returns the total click count for the shortcode.
+
+## Planned work
+
+The following items are documented in [production.md](./production.md) but are not implemented in the current app yet:
+
+- Authentication and authorization
+- Redis-backed rate limiting
+- Production security and hardening
+- Docker and deployment setup
+- Automated tests and CI
+- A separate `TRADEOFFS.md` document
 
 ## Status
+
 🚧 In progress
