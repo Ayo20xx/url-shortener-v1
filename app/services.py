@@ -97,7 +97,7 @@ async def delete_url(shortcode: str, session:AsyncSession):
             status_code= status.HTTP_404_NOT_FOUND,
             detail= f"data with id {shortcode } can not be found"
         )
-    session.delete(query)
+    await session.delete(query)
     await session.commit()
     return {"detail": f"Successfully deleted item {shortcode}"}
 
@@ -111,7 +111,7 @@ async def update_url_service(shortcode: str ,session: AsyncSession,input:UrlUpda
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
 
     update_data = input.model_dump(exclude_unset=True)
-    if await is_exists(session,input.custom_shortcodes):
+    if await is_exists(session,input.custom_shortcode):
              raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.") 
     for field,value in update_data.items():
         setattr(url,field,value)

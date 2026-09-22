@@ -37,9 +37,9 @@ async def redirect_url(shortcode:str,session:SessionDep):
 
 @app.patch("/urls/{shortcode}")
 async def update(shortcode: str, session: SessionDep,input: UrlUpdate):
-    return await update_url_service(shortcode,session)
+    return await update_url_service(shortcode,session,input)
 
-@app.delete("/urls/{id}")
+@app.delete("/urls/{shortcode}")
 async def delete_urls(shortcode:str,session:SessionDep):
     return await delete_url(shortcode,session)
 
