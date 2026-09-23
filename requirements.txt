@@ -1,0 +1,7 @@
+alembic
+asyncpg
+fastapi
+python-dotenv
+sqlalchemy
+sqlmodel
+uvicorn[standard]

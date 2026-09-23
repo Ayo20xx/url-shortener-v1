@@ -41,10 +41,10 @@ The app does not currently implement authentication, Redis-backed rate limiting,
 
 3. Install the app dependencies.
 
-   This repository does not currently include a root `requirements.txt`, so install the packages used by the app directly:
+   Install the runtime dependencies:
 
    ```bash
-   pip install fastapi uvicorn sqlmodel sqlalchemy asyncpg alembic python-dotenv
+   pip install -r requirements.txt
    ```
 
 4. Create a local PostgreSQL database.
@@ -72,6 +72,13 @@ The app does not currently implement authentication, Redis-backed rate limiting,
    ```bash
    uvicorn app.main:app --reload
    ```
+
+For development and tests, install the additional test dependencies and run:
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest
+```
 
 The app will be available at `http://localhost:8000`, and the interactive docs are at `http://localhost:8000/docs`.
 
@@ -105,7 +112,8 @@ Request body:
 }
 ```
 
-`custom_shortcode` and `expires_at` are optional.
+`custom_shortcode` and `expires_at` are optional. New URLs default to a
+30-day expiration; an updated URL with `expires_at: null` does not expire.
 
 Response:
 
@@ -113,7 +121,6 @@ Response:
 {
   "id": 1,
   "url": "https://example.com/very/long/path",
-  "custom_shortcode": "example",
   "shortcode": "example",
   "expires_at": "2026-10-01T12:00:00",
   "created_at": "2026-09-21T12:00:00"
@@ -134,11 +141,14 @@ This endpoint responds with an HTTP redirect to the original URL.
 
 `PATCH /urls/{shortcode}`
 
-Request body follows the same fields as the create schema, with the same validation rules.
+Request body may include any subset of `url`, `custom_shortcode`, and
+`expires_at`.
 
 ### Delete a URL
 
-`DELETE /urls/{id}`
+`DELETE /urls/{shortcode}`
+
+Deleting a URL also deletes its click records.
 
 ### Basic analytics
 

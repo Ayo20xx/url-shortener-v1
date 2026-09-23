@@ -15,7 +15,9 @@ The project is a solid beginner MVP. You have already learned and used:
 - Generated and custom shortcodes
 - Redirects and click persistence
 
-Current gaps are normal for this stage: the API contract is unfinished, the README overstates the implemented features, migrations need a clean first version, and there are no automated tests yet.
+Current gaps are normal for this stage: the API contract and production
+hardening are unfinished. The core migration and automated tests are now
+verified locally, but this remains an early MVP.
 
 Do not describe unfinished README features as completed. Mark them as planned until the code and tests exist.
 
@@ -32,12 +34,12 @@ Do not describe unfinished README features as completed. Mark them as planned un
 
 ### Database and migrations
 
-- [ ] Generate one clean initial migration containing both `url` and `clicks` tables.
-- [ ] Verify a fresh empty database can run `alembic upgrade head` successfully.
+- [x] Generate one clean initial migration containing both `url` and `clicks` tables.
+- [x] Verify a fresh empty database can run `alembic upgrade head` successfully.
 - [ ] Keep `SQLModel.metadata` assigned to Alembic `target_metadata`.
-- [ ] Use Alembic as the production schema owner instead of `create_all()` at startup.
+- [x] Use Alembic as the production schema owner instead of `create_all()` at startup.
 - [ ] Add an index on `clicks.url_id` for analytics queries.
-- [ ] Decide how deleting a URL affects its clicks: cascade-delete them or retain them for audit purposes.
+- [x] Cascade-delete clicks when their URL is deleted.
 
 Commands to verify the migration workflow:
 
@@ -51,11 +53,11 @@ Review generated migrations before applying them. A clean database must create t
 
 ### URL behavior
 
-- [ ] Enforce `expires_at` during redirects and return `410 Gone` for expired links.
+- [x] Enforce `expires_at` during redirects and return `410 Gone` for expired links.
 - [ ] Decide whether clients can choose expiration or whether every URL always expires after 30 days.
 - [ ] Validate shortcode length and allowed characters.
 - [ ] Add a maximum URL length.
-- [ ] Reject reserved shortcodes such as `docs`, `health`, and `urls`.
+- [x] Reject reserved shortcodes such as `docs`, `health`, and `urls`.
 - [ ] Keep the database unique constraint as the final protection against duplicate shortcodes.
 - [ ] Catch uniqueness errors and retry generated shortcodes after rolling back the session.
 
@@ -63,10 +65,10 @@ Review generated migrations before applying them. A clean database must create t
 
 - [ ] Fix the update route to use `PATCH /urls/{id}`.
 - [ ] Pass a `UrlUpdate` request body into the update service.
-- [ ] Map `custom_shortcodes` to the model field `shortcode` explicitly.
-- [ ] Check shortcode uniqueness when updating.
-- [ ] Add response models to update and delete endpoints.
-- [ ] Validate `skip` and `limit`, including a maximum page size.
+- [x] Map `custom_shortcode` to the model field `shortcode` explicitly.
+- [x] Check shortcode uniqueness when updating.
+- [x] Add response models to update and delete endpoints.
+- [x] Validate `skip` and `limit`, including a maximum page size.
 - [ ] Use consistent error messages and status codes.
 
 ### Analytics
