@@ -9,24 +9,34 @@ from sqlmodel import exists, func, select
 from app.model import Clicks, Url
 from app.schema import UrlCreate, UrlUpdate
 
+RESERVED_SHORTCODES = frozenset({"docs", "health", "urls"})
+
 
 def shortcode_generator():
     return token_urlsafe(6)
 
-async def is_exists(session:AsyncSession,shortcode:str) -> bool:
-    statement=select(exists().where(Url.shortcode == shortcode))
+async def is_exists(
+    session: AsyncSession,
+    shortcode: str,
+    exclude_url_id: int | None = None,
+) -> bool:
+    conditions = [Url.shortcode == shortcode]
+    if exclude_url_id is not None:
+        conditions.append(Url.id != exclude_url_id)
+
+    statement = select(exists().where(*conditions))
     is_exists= await session.scalar(statement)
     return is_exists
 
 
-def to_naive_utc(dt: datetime) -> datetime:
-    if dt.tzinfo is not None:
-        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
-    return dt
+def normalize_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 async def create_url_service(input:UrlCreate,session:AsyncSession):
     if input.custom_shortcode:
-     if input.custom_shortcode in ["docs", "health", "urls"]:
+     if input.custom_shortcode in RESERVED_SHORTCODES:
          raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.")
      if await is_exists(session,input.custom_shortcode):
          raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.") 
@@ -45,11 +55,12 @@ async def create_url_service(input:UrlCreate,session:AsyncSession):
                 )
             shortcode = shortcode_generator()
 
-    expires_at = (
-        to_naive_utc(input.expires_at)
-        if input.expires_at is not None
-        else (datetime.now(timezone.utc) + timedelta(days=30)).replace(tzinfo=None)
-    )
+    if "expires_at" not in input.model_fields_set:
+        expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+    elif input.expires_at is None:
+        expires_at = None
+    else:
+        expires_at = normalize_utc(input.expires_at)
 
     new_url = Url(
         url=str(input.url),
@@ -69,7 +80,10 @@ async def get_url_service(input: str, session: AsyncSession):
     url= result.first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
-    if url.expires_at <  to_naive_utc(datetime.now(timezone.utc)):
+    if (
+        url.expires_at is not None
+        and url.expires_at < normalize_utc(datetime.now(timezone.utc))
+    ):
         raise HTTPException(status_code=status.HTTP_410_GONE,detail="expired url code" )
 
     new_click = Clicks(url_id=url.id)
@@ -111,9 +125,23 @@ async def update_url_service(shortcode: str ,session: AsyncSession,input:UrlUpda
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
 
     update_data = input.model_dump(exclude_unset=True)
-    if await is_exists(session,input.custom_shortcode):
-             raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.") 
+    new_shortcode = update_data.pop("custom_shortcode", None)
+    if new_shortcode is not None:
+        if new_shortcode in RESERVED_SHORTCODES:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Custom shortcode is already taken.",
+            )
+        if await is_exists(session, new_shortcode, exclude_url_id=url.id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Custom shortcode is already taken.",
+            )
+        update_data["shortcode"] = new_shortcode
+
     for field,value in update_data.items():
+        if field == "url":
+            value = str(value)
         setattr(url,field,value)
 
     session.add(url)
