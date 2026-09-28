@@ -8,7 +8,7 @@ from fastapi import Depends
 
 engine= create_async_engine(
     url= postgres_url,
-    echo = True
+    echo = False
 )
 
 
