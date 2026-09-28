@@ -18,6 +18,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite://")
 from app.main import app
 from app.model import Clicks, Url
 from app.schema import UrlCreate, UrlUpdate
+from app import services
 from app.services import (
     analytics,
     create_url_service,
@@ -72,6 +73,62 @@ def test_create_and_duplicate_shortcode(session_factory):
                         custom_shortcode="example",
                     ),
                     session,
+                )
+            assert error.value.status_code == 409
+
+    run(scenario())
+
+
+def test_database_shortcode_collisions_are_handled(session_factory, monkeypatch):
+    async def scenario():
+        async with session_factory() as session:
+            await create_url_service(
+                UrlCreate(url="https://example.com", custom_shortcode="taken"),
+                session,
+            )
+            await create_url_service(
+                UrlCreate(url="https://example.org", custom_shortcode="occupied"),
+                session,
+            )
+
+            original_is_exists = services.is_exists
+            bypassed_checks = set()
+
+            async def bypass_first_check(session, shortcode, exclude_url_id=None):
+                if shortcode not in bypassed_checks:
+                    bypassed_checks.add(shortcode)
+                    return False
+                return await original_is_exists(
+                    session, shortcode, exclude_url_id=exclude_url_id
+                )
+
+            monkeypatch.setattr(services, "is_exists", bypass_first_check)
+            with pytest.raises(HTTPException) as error:
+                await create_url_service(
+                    UrlCreate(
+                        url="https://example.net",
+                        custom_shortcode="taken",
+                    ),
+                    session,
+                )
+            assert error.value.status_code == 409
+
+            bypassed_checks.clear()
+            generated_codes = iter(["taken", "generated"])
+            monkeypatch.setattr(
+                services, "shortcode_generator", lambda: next(generated_codes)
+            )
+            generated = await create_url_service(
+                UrlCreate(url="https://example.net"),
+                session,
+            )
+            assert generated.shortcode == "generated"
+
+            with pytest.raises(HTTPException) as error:
+                await update_url_service(
+                    generated.shortcode,
+                    session,
+                    UrlUpdate(custom_shortcode="occupied"),
                 )
             assert error.value.status_code == 409
 

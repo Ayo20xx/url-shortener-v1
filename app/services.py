@@ -3,6 +3,7 @@ from secrets import token_urlsafe
 
 from fastapi import HTTPException, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import exists, func, select
 
@@ -35,26 +36,6 @@ def normalize_utc(dt: datetime) -> datetime:
     return dt.astimezone(timezone.utc)
 
 async def create_url_service(input:UrlCreate,session:AsyncSession):
-    if input.custom_shortcode:
-     if input.custom_shortcode in RESERVED_SHORTCODES:
-         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.")
-     if await is_exists(session,input.custom_shortcode):
-         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Custom shortcode is already taken.") 
-     shortcode = input.custom_shortcode
-
-    else:
-        shortcode = shortcode_generator()
-        max_attempts = 5
-        attempts = 0
-        while await is_exists(session, shortcode):
-            attempts += 1
-            if attempts >= max_attempts:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Could not generate a unique shortcode."
-                )
-            shortcode = shortcode_generator()
-
     if "expires_at" not in input.model_fields_set:
         expires_at = datetime.now(timezone.utc) + timedelta(days=30)
     elif input.expires_at is None:
@@ -62,16 +43,55 @@ async def create_url_service(input:UrlCreate,session:AsyncSession):
     else:
         expires_at = normalize_utc(input.expires_at)
 
-    new_url = Url(
-        url=str(input.url),
-        shortcode=shortcode,
-        expires_at=expires_at,
-    )
+    custom_shortcode = input.custom_shortcode
+    if custom_shortcode in RESERVED_SHORTCODES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Custom shortcode is already taken.",
+        )
 
-    session.add(new_url)
-    await session.commit()
-    await session.refresh(new_url)
-    return new_url
+    max_attempts = 1 if custom_shortcode else 5
+    for _ in range(max_attempts):
+        shortcode = custom_shortcode or shortcode_generator()
+        if await is_exists(session, shortcode):
+            if custom_shortcode:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Custom shortcode is already taken.",
+                )
+            continue
+
+        new_url = Url(
+            url=str(input.url),
+            shortcode=shortcode,
+            expires_at=expires_at,
+        )
+        session.add(new_url)
+        try:
+            await session.commit()
+        except IntegrityError:
+            await session.rollback()
+            if await is_exists(session, shortcode):
+                if custom_shortcode:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Custom shortcode is already taken.",
+                    )
+                continue
+            raise
+
+        await session.refresh(new_url)
+        return new_url
+
+    if custom_shortcode:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Custom shortcode is already taken.",
+        )
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Could not generate a unique shortcode.",
+    )
 
 
 async def get_url_service(input: str, session: AsyncSession):
@@ -123,6 +143,7 @@ async def update_url_service(shortcode: str ,session: AsyncSession,input:UrlUpda
     url= result.first()
     if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Url Not Found")
+    url_id = url.id
 
     update_data = input.model_dump(exclude_unset=True)
     new_shortcode = update_data.pop("custom_shortcode", None)
@@ -145,7 +166,18 @@ async def update_url_service(shortcode: str ,session: AsyncSession,input:UrlUpda
         setattr(url,field,value)
 
     session.add(url)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        await session.rollback()
+        if new_shortcode is not None and await is_exists(
+            session, new_shortcode, exclude_url_id=url_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Custom shortcode is already taken.",
+            )
+        raise
     await session.refresh(url)
     return url
 

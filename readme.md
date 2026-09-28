@@ -89,7 +89,7 @@ The app reads `DATABASE_URL` from a `.env` file through `config.py`.
 Example value:
 
 ```dotenv
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/url_shortener
+DATABASE_URL=postgresql+asyncpg://USER:PASSWORD@localhost:5432/url_shortener
 ```
 
 The repository includes a safe template at [.env.example](./.env.example).
