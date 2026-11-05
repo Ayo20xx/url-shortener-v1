@@ -53,6 +53,23 @@ documentation is available at <http://localhost:8000/docs>.
 
 Keep real credentials out of source control.
 
+## Run with Docker
+
+Docker must be installed, and a PostgreSQL database must already be reachable
+from the container. Set `DATABASE_URL` in `.env` to that database. If PostgreSQL
+runs directly on your Mac or Windows host, use `host.docker.internal` instead
+of `localhost` as the hostname.
+
+Build the image and start the API in one command:
+
+```bash
+docker build -t url-shortener . && docker run --rm --name url-shortener \
+  -p 8000:8000 --env-file .env url-shortener
+```
+
+The container applies Alembic migrations before starting the API. Visit
+<http://localhost:8000/docs> when the container is running.
+
 ## Quick Start
 
 Create a URL that uses the default 30-day expiration:
@@ -138,6 +155,30 @@ setting `expires_at` to `null` makes the URL non-expiring.
 The list endpoint defaults to `skip=0` and `limit=10`. `skip` must be
 non-negative and `limit` must be between 1 and 100.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    Client -->|HTTP request| API[FastAPI routes]
+    API --> Services[URL and analytics services]
+    Services --> Session[SQLAlchemy async session]
+    Session --> DB[(PostgreSQL)]
+    DB -->|URLs and click records| Session
+    Session --> Services
+    Services -->|JSON, errors, or redirect| API
+    API --> Client
+```
+
+## Tradeoffs
+
+- PostgreSQL enforces shortcode uniqueness and stores URL and click records
+  durably, at the cost of requiring a database to run the service.
+- Each successful redirect writes a click record, keeping totals current but
+  adding a database write and storage growth to the redirect path.
+- Random shortcodes are simple and compact; collision checks and retries help
+  avoid duplicates, but this design is not intended for very high-volume
+  multi-region use.
+
 ## Tests
 
 Run the test suite from the activated virtual environment with:
@@ -149,6 +190,18 @@ python -m pytest
 Tests cover shortcode uniqueness and collision handling, default and
 non-expiring URLs, redirects and click analytics, expiration, updates, delete
 cascades, pagination validation, configuration errors, and clean migrations.
+
+## What I Would Add Next
+
+- **Authentication and ownership:** Require users to sign in and only allow
+  them to update or delete their own URLs. This would prevent anyone with a
+  shortcode from managing another user's links.
+- **Caching:** Cache frequently requested URL destination and expiration data
+  to make redirects faster. Clicks would still need to be recorded on every
+  successful redirect so analytics remain accurate.
+- **Rate limiting:** Limit URL creation and other abuse-prone requests. A
+  shared store such as Redis would keep limits consistent across multiple
+  application instances.
 
 ## Current Limitations
 
